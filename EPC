@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EPC Foto Notities</title>
+<style>
+    body { font-family: sans-serif; margin: 20px; }
+    button { padding: 10px 15px; font-size: 16px; margin-top: 10px; }
+    input { padding: 10px; width: 100%; font-size: 16px; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<h2>EPC Foto + Omschrijving</h2>
+
+<button onclick="document.getElementById('file').click()">📸 Neem foto</button>
+<input type="file" id="file" accept="image/*" capture="environment" style="display:none">
+
+<input id="desc" placeholder="Omschrijving (bv. keuken)">
+
+<button onclick="saveImage()">Opslaan in Foto's</button>
+
+<script>
+let currentImage = null;
+
+document.getElementById("file").addEventListener("change", function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+        currentImage = evt.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
+function saveImage() {
+    const text = document.getElementById("desc").value.trim();
+    if (!currentImage || !text) {
+        alert("Neem een foto en geef een omschrijving.");
+        return;
+    }
+
+    const img = new Image();
+    img.src = currentImage;
+    img.onload = function() {
+        // canvas grootte: tekst boven + foto + rand + datum
+        const padding = 40;
+        const border = 8; // zwarte rand
+        const textHeight = 80;
+        const dateHeight = 60;
+        const canvasWidth = img.width + padding*2;
+        const canvasHeight = textHeight + img.height + border*2 + dateHeight + padding;
+
+        const canvas = document.createElement("canvas");
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        const ctx = canvas.getContext("2d");
+
+        // witte achtergrond
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // omschrijving bovenaan
+        ctx.fillStyle = "#000";
+        ctx.font = "bold 48px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(text, canvasWidth/2, padding + 50);
+
+        // foto positie
+        const imgX = padding;
+        const imgY = textHeight + padding;
+        const imgW = img.width;
+        const imgH = img.height;
+
+        // zwarte rand
+        ctx.fillStyle = "#000";
+        ctx.fillRect(imgX - border, imgY - border, imgW + border*2, imgH + border*2);
+
+        // foto tekenen
+        ctx.drawImage(img, imgX, imgY, imgW, imgH);
+
+        // datum en tijd onderaan
+        const now = new Date();
+        const dateStr = now.toLocaleDateString("nl-NL") + " " + now.toLocaleTimeString("nl-NL", {hour: '2-digit', minute:'2-digit'});
+        ctx.font = "bold 32px sans-serif";
+        ctx.fillStyle = "#000";
+        ctx.textAlign = "center";
+        ctx.fillText(dateStr, canvasWidth/2, textHeight + imgH + padding + border*2 + 40);
+
+        // genereer data URL en download
+        const dataURL = canvas.toDataURL("image/jpeg", 0.95);
+        const a = document.createElement("a");
+        a.href = dataURL;
+        a.download = "EPC_" + text + ".jpg";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        alert("Foto opgeslagen in Foto's-app!");
+    };
+}
+</script>
+
+</body>
+</html>
